@@ -1,4 +1,4 @@
-from torch import tensor,nn,fft,diag,ones,float64
+from torch import tensor,nn,fft,full_like
 import torchsde
 from math import pi
 
@@ -11,17 +11,18 @@ class Heat(nn.Module):
         # parameters
         # FIXME: I don't know if there's an advantage to these fancy torch Parameter classes
         # the documentation says that you can iterate over all parameters, somehow
-        self.nu    = nn.Parameter(tensor(nu), requires_grad=False)      # viscosity / Reynolds
-        self.alpha = nn.Parameter(tensor(alpha), requires_grad=False)       # noise intensity
+        self.nu    = nn.Parameter(tensor(nu), requires_grad=False)              # viscosity / Reynolds
+        self.alpha = nn.Parameter(tensor(alpha), requires_grad=False)           # noise intensity
         self.N     = nn.Parameter(tensor(N), requires_grad=False)               # number of modes
         self.dx    = 1./float(N)                                                # spacing
         if N%2!=0:
             raise ValueError('N must be even')
-        self.nucte = nn.Parameter(tensor(4.*pi**2*nu), requires_grad=False) # noise intensity
-        self.wavenumbers = 2*pi*fft.fftfreq(self.N, d=self.dx)                    # wavenumbers vector
+        self.nucte = nn.Parameter(tensor(4.*pi**2*nu), requires_grad=False)     # noise intensity
+        self.wavenumbers = 2*pi*fft.fftfreq(self.N, d=self.dx)                  # wavenumbers vector
 
-        self.noise_type = 'additive'
+        self.noise_type = 'diagonal'
         # TODO: which is better, additive or diagonal?
+        # TODO: I don't know how to create additive noise
         self.sde_type = 'ito'
 
     # Drift
@@ -30,7 +31,23 @@ class Heat(nn.Module):
         return -self.nucte*self.wavenumbers*y  # shape (batch_size, state_size)
 
     # Diffusion
-    # g = alpha * f
+    # g = alpha * dW/dt
     def g(self, t, y):
 
-        return diag(ones((self.N,), dtype=float64)*self.alpha)
+        # FIXME: additive noise below does not work
+        #return diag(full((self.N,),self.alpha))
+        return full_like(y,self.alpha)
+
+    def squared(self, y):
+        """
+        Compute solution squared
+        """
+        return y*y
+
+    def gradient_squared(self):
+
+        return 1.
+
+    def spectrum(self,t):
+
+        return 1.
