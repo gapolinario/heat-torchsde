@@ -37,17 +37,3 @@ class Heat(nn.Module):
         # FIXME: additive noise below does not work
         #return diag(full((self.N,),self.alpha))
         return full_like(y,self.alpha)
-
-    def squared(self, y):
-        """
-        Compute solution squared
-        """
-        return y*y
-
-    def gradient_squared(self):
-
-        return 1.
-
-    def spectrum(self,t):
-
-        return 1.
